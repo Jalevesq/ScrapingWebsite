@@ -11,6 +11,8 @@ def check_information_decorator(func):
             result['price'] = '$0.00'
         if not result['img']:
             result['img'] = 'No Image URL Found'
+        if not result['url']:
+            result['url'] = 'No Product URL Found'
 
         return result
 
