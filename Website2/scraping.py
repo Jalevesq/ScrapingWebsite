@@ -8,9 +8,10 @@ from initPage import openWebsite, initNewPage
 from utils import waitForPage, checkFilePath
 from getter import getCategory, getImgUrl, getProductUrl
 
+temporaryFolder = 'temp/'
+unfilteredFolder = 'unfiltered/'
 
 def save_product(data, filename):
-    print(f"Data to save:\n{data}")
     if os.path.isfile(filename):
         df = pd.DataFrame(data, columns=['Vendor', 'Title', 'Url', 'Price', 'Image'])
         df.to_csv(filename, mode='a', header=False, index=False)
@@ -26,7 +27,7 @@ def next_page(page_data, category_data, link):
     try:
         ul.wait_for_selector("li:has(a.next.page-numbers)", timeout=5000)
         li = ul.query_selector("li:has(a.next.page-numbers)")
-        save_product(page_data, file_path_to_save + "/temp/" + link.split('/')[-1] + ".csv") # Recovery save in decorator?
+        save_product(page_data, file_path_to_save + temporaryFolder + link.split('/')[-1] + ".csv") # Recovery save in decorator?
         category_data.extend(page_data)
         li.click()
     except Exception:
@@ -80,13 +81,13 @@ def getAllProduct(page, category_links):
     for link in category_links:
         category_data = iterateCategory(link, page)
         all_data.extend(category_data)
-        save_product(category_data, file_path_to_save + link.split('/')[-1] + ".csv")
-    save_product(all_data, file_path_to_save + "all_test.csv")
+        save_product(category_data, file_path_to_save + unfilteredFolder + link.split('/')[-1] + ".csv")
+    save_product(all_data, file_path_to_save + unfilteredFolder + "all_product.csv")
 
 
 if __name__ == "__main__":
     if not checkFilePath(file_path_to_save):
-        print(f"Please make sure that the folder exists.")
+        print(f"Please make sure that the folder you have set in private.py exists.")
         exit(1)
     with sync_playwright() as p:
         page, browser = openWebsite(p)
