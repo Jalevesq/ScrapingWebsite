@@ -1,24 +1,14 @@
 from playwright.sync_api import sync_playwright
 import pandas as pd
 import time, random, datetime, os
-from private import websiteToScrape, file_path_to_save
+from private import websiteToScrape, file_path_to_save, user_agents
 from myDecorator import check_information_decorator
 
 browser = None
 desired_size = '360w'
-user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15"
-]
-    
 
 def openWebsite(p):
-    global browser  # Use the global browser variable
+    global browser
     browser = p.chromium.launch(headless=True, slow_mo=50)
     random_user_agent = random.choice(user_agents)
     context = browser.new_context(user_agent=random_user_agent)
@@ -67,6 +57,7 @@ def getImgUrl(div, page):
             break
     return url
 
+
 @check_information_decorator
 def getInfo(div, page):
     current_y = page.evaluate('window.scrollY')
@@ -83,13 +74,15 @@ def getInfo(div, page):
         'price': price,
         'img': img
     }
-    
+
+
 def initNewPage(page):
     time.sleep(2)
     page.evaluate(f'window.scrollBy(0, 0);')
     page.reload()
     viewport_height = page.evaluate('window.innerHeight')
     page.evaluate(f'window.scrollBy(0, {viewport_height} / 2);')
+
 
 def waitForPage(page):
     try:
@@ -99,7 +92,7 @@ def waitForPage(page):
         return False
     return True
 
-# Temp Save in try catch in a decorator?
+
 def next_page(page_data, category_data, link):
     ul = page.query_selector("#shopify-section-collection_page > div.products-footer.tc.mt__40.mb__60.use_pagination_default > nav > ul")
     try:
@@ -134,6 +127,7 @@ def iterateCategory(link, page):
             break
     return category_data
 
+
 def getAllProduct(page, category_links):
     all_data = []
     # Demander si je veux scrape [link] ou passer au prochain ?
@@ -142,7 +136,6 @@ def getAllProduct(page, category_links):
         all_data.extend(category_data)
         save_product(category_data, file_path_to_save + link.split('/')[-1] + ".csv")
     save_product(all_data, file_path_to_save +"all_test.csv")
-
 
 
 def save_product(data, filename):
