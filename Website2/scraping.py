@@ -2,14 +2,11 @@ from playwright.sync_api import sync_playwright
 import pandas as pd
 import time, random, datetime, os
 
-from private import file_path_to_save
+from private import file_path_to_save, temporaryFolder, unfilteredFolder
 from myDecorator import check_information_decorator
 from initPage import openWebsite, initNewPage
 from utils import waitForPage, checkFilePath
 from getter import getCategory, getImgUrl, getProductUrl
-
-temporaryFolder = 'temp/'
-unfilteredFolder = 'unfiltered/'
 
 def save_product(data, filename):
     if os.path.isfile(filename):
