@@ -2,16 +2,14 @@ from playwright.sync_api import sync_playwright
 from undetected_playwright import stealth_sync
 
 import pandas as pd
-import time, random, datetime, os
+import time, random, datetime, os, re
 
 from utils import checkFilePath
 from private import file_path_to_save, websiteToScrape, user_agents, temporaryFolder, unfilteredFolder
 
-category_links = []
-all_data = []
 
 def openWebsite(p):
-    browser = p.chromium.launch(headless=False, slow_mo=50)
+    browser = p.chromium.launch(headless=True, slow_mo=1000)
     random_user_agent = random.choice(user_agents)
     context = browser.new_context(user_agent=random_user_agent)
     stealth_sync(context)
@@ -35,6 +33,7 @@ def getImgUrl(div, page):
     url = "No URL found"
     desired_img_size = '360w'
     div_img = div.query_selector('img.product--image')
+    srcset = ""
     if div_img:
         srcset = div_img.get_attribute('data-srcset')
     sources = srcset.split(', ')
@@ -45,39 +44,62 @@ def getImgUrl(div, page):
             url = "https:" + url
             break
     return url
-def getAllProduct(page):
-    total_product = 0
-    current_product = 0
-    while 1:
-        page_data = []
-        infinite_scroll_container = page.query_selector('#infiniteScrollContainer')
-        divs_inside_container = infinite_scroll_container.query_selector_all('> div')
 
-        scrollPage(divs_inside_container)
-        if (total_product == len(divs_inside_container)):
-            print("Rescroll !")
+
+def getUrl(div):
+    url = "Url not found"
+    div_url = div.query_selector('a.grid-product__image-link')
+    if div_url:
+        url = div_url.get_attribute('href')
+        url = websiteToScrape + url
+    return url
+
+def getAllProduct(page, category_links):
+    all_data = []
+    for category in category_links:
+        response = input(f"Do you want to scrape: {category}")
+        if response == 'n':
             continue
-        
-        total_product = len(divs_inside_container)
-        while current_product < total_product:
-            div = divs_inside_container[current_product]
+        category_data = []
+        page.goto(websiteToScrape + category)
+        total_product = 0
+        current_product = 0
+        while 1:
+            page_data = []
+            infinite_scroll_container = page.query_selector('#infiniteScrollContainer')
+            divs_inside_container = infinite_scroll_container.query_selector_all('> div')
 
-            span_money = div.query_selector('span.money')
-            p_title = div.query_selector('p.grid-product__title')
-            img = getImgUrl(div, page)
+            scrollPage(divs_inside_container)
+            if (total_product == len(divs_inside_container)):
+                print("Did not find new product, end of this category")
+                break
             
-            # Extract the content of the elements
-            price = span_money.text_content() if span_money else "N/A"
-            title = p_title.text_content() if p_title else "N/A"
-            img = img.get_attribute('src') if img else "N/A"
+            total_product = len(divs_inside_container)
+            while current_product < total_product:
+                div = divs_inside_container[current_product]
 
-            page_data.append((['N/A', title,'N/A',price, img]))
-            all_data.append(['N/A', title,'N/A',price, img])
-            current_product = current_product + 1
-        save_product(page_data, file_path_to_save + temporaryFolder + "all_product.csv")
+                span_money = div.query_selector('span.money')
+                p_title = div.query_selector('p.grid-product__title')
+                
+                # Extract the content of the elements
+                price = span_money.text_content() if span_money else "N/A"
+                title = p_title.text_content() if p_title else "N/A"
+                img = getImgUrl(div, page)
+                url =  getUrl(div)
+
+                page_data.append((['N/A', title, url ,price, img]))
+                current_product = current_product + 1
+            category_data.extend(page_data)
+            all_data.extend(page_data)
+            save_product(page_data, file_path_to_save + temporaryFolder + category.split('/')[-1] + ".csv")
+        save_product(category_data, file_path_to_save + unfilteredFolder + category.split('/')[-1] + ".csv")
+    return all_data
 
 
 def save_product(data, filename):
+    if not data:
+        print("data is empty. nothing to save.")
+        return
     if os.path.isfile(filename):
         df = pd.DataFrame(data, columns=['Vendor', 'Title', 'Url', 'Price', 'Image'])
         df.to_csv(filename, mode='a', header=False, index=False)
@@ -87,16 +109,32 @@ def save_product(data, filename):
         df.to_csv(filename, index=False)
         print(f"Data has been saved to {filename}")
 
+def getHref(page):
+    li_elements = page.query_selector_all('ul.menu-bar__inner > li.menu-bar__item')
+    href_list = []
+    for li in li_elements:
+        a_element = li.query_selector('a.menu-bar__link')
+        if a_element:
+            href_value = a_element.get_attribute('href')
+            href_list.append(href_value)
+
+    if href_list:
+        href_list.pop()
+        href_list = href_list[2:]
+    return href_list
+
 
 if __name__ == "__main__":
+    all_data = []
     if checkFilePath(file_path_to_save) is False:
         print("Please create the folder.")
         exit(1)
     with sync_playwright() as p:
         page, browser = openWebsite(p)
+        category_links = getHref(page)
         # time.sleep(10)
         try:
-            getAllProduct(page)
+            all_data = getAllProduct(page, category_links)
         except Exception as e:
             print(f"Unexpected Problem: {e}")
         save_product(all_data, file_path_to_save + unfilteredFolder + 'SugarDaddy_All_Products.csv')
