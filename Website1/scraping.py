@@ -58,7 +58,7 @@ def getAllProduct(page, category_links):
     all_data = []
     for category in category_links:
         response = input(f"Do you want to scrape: {category}")
-        if response == 'n':
+        if response == 'n': # Some page are not real category page.
             continue
         category_data = []
         page.goto(websiteToScrape + category)
