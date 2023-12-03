@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 import pandas as pd
-import time, random, datetime, os
+import time, os
 
 from private import file_path_to_save, temporaryFolder, unfilteredFolder
 from myDecorator import check_information_decorator
