@@ -132,7 +132,7 @@ def getHref(page):
 
     if href_list:
         href_list.pop() # Remove the last 'category'. It's the search bar.
-        href_list = href_list[2:] # Remove the 2 first. I don't need them.
+        # href_list = href_list[2:] # Remove the 2 first. I don't need them.
     return href_list
 
 
