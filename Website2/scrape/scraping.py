@@ -9,6 +9,9 @@ from utils import waitForPage, checkFilePath
 from getter import getCategory, getImgUrl, getProductUrl
 
 def save_product(data, filename):
+    if not data:
+        print("data is empty. nothing to save.")
+        return
     if os.path.isfile(filename):
         df = pd.DataFrame(data, columns=['Vendor', 'Title', 'Url', 'Price', 'Image'])
         df.to_csv(filename, mode='a', header=False, index=False)
@@ -20,12 +23,12 @@ def save_product(data, filename):
 
 
 def next_page(page_data, category_data, link):
+    save_product(page_data, file_path_to_save + temporaryFolder + link.split('/')[-1] + ".csv") # Recovery save in decorator?
+    category_data.extend(page_data)
     ul = page.query_selector("#shopify-section-collection_page > div.products-footer.tc.mt__40.mb__60.use_pagination_default > nav > ul")
     try:
         ul.wait_for_selector("li:has(a.next.page-numbers)", timeout=5000)
         li = ul.query_selector("li:has(a.next.page-numbers)")
-        save_product(page_data, file_path_to_save + temporaryFolder + link.split('/')[-1] + ".csv") # Recovery save in decorator?
-        category_data.extend(page_data)
         li.click()
     except Exception:
         print(f"[Exception Hidden] End of category: {link}")
@@ -76,8 +79,12 @@ def getAllProduct(page, category_links):
     all_data = []
     # Demander si je veux scrape [link] ou passer au prochain ?
     for link in category_links:
+        user = input(f"Do you want to scrape: {link}")
+        if user == 'n':
+            continue
         category_data = iterateCategory(link, page)
         all_data.extend(category_data)
+        print(category_data)
         save_product(category_data, file_path_to_save + unfilteredFolder + link.split('/')[-1] + ".csv")
     save_product(all_data, file_path_to_save + unfilteredFolder + "all_product.csv")
 
