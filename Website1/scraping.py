@@ -54,6 +54,46 @@ def getUrl(div):
         url = websiteToScrape + url
     return url
 
+
+def getPageData(current_product, total_product, divs_inside_container):
+    page_data = []
+    while current_product < total_product:
+        div = divs_inside_container[current_product]
+
+        span_money = div.query_selector('span.money')
+        p_title = div.query_selector('p.grid-product__title')
+        
+        # Extract the content of the elements
+        price = span_money.text_content() if span_money else "N/A"
+        title = p_title.text_content() if p_title else "N/A"
+        img = getImgUrl(div, page)
+        url =  getUrl(div)
+
+        page_data.append((['N/A', title, url ,price, img]))
+        current_product = current_product + 1
+    return page_data, current_product
+
+
+def iterateCategory(page, category):
+    total_product = 0
+    current_product = 0
+    category_data = []
+    while 1:
+        page_data = []
+        infinite_scroll_container = page.query_selector('#infiniteScrollContainer')
+        divs_inside_container = infinite_scroll_container.query_selector_all('> div')
+
+        scrollPage(divs_inside_container)
+        if (total_product == len(divs_inside_container)):
+            print("Did not find new product, end of this category")
+            break
+        
+        total_product = len(divs_inside_container)
+        page_data, current_product = getPageData(current_product, total_product, divs_inside_container)
+        category_data.extend(page_data)
+        save_product(page_data, file_path_to_save + temporaryFolder + category.split('/')[-1] + ".csv")
+    return category_data
+
 def getAllProduct(page, category_links):
     all_data = []
     for category in category_links:
@@ -62,37 +102,9 @@ def getAllProduct(page, category_links):
             continue
         category_data = []
         page.goto(websiteToScrape + category)
-        total_product = 0
-        current_product = 0
-        while 1:
-            page_data = []
-            infinite_scroll_container = page.query_selector('#infiniteScrollContainer')
-            divs_inside_container = infinite_scroll_container.query_selector_all('> div')
-
-            scrollPage(divs_inside_container)
-            if (total_product == len(divs_inside_container)):
-                print("Did not find new product, end of this category")
-                break
-            
-            total_product = len(divs_inside_container)
-            while current_product < total_product:
-                div = divs_inside_container[current_product]
-
-                span_money = div.query_selector('span.money')
-                p_title = div.query_selector('p.grid-product__title')
-                
-                # Extract the content of the elements
-                price = span_money.text_content() if span_money else "N/A"
-                title = p_title.text_content() if p_title else "N/A"
-                img = getImgUrl(div, page)
-                url =  getUrl(div)
-
-                page_data.append((['N/A', title, url ,price, img]))
-                current_product = current_product + 1
-            category_data.extend(page_data)
-            all_data.extend(page_data)
-            save_product(page_data, file_path_to_save + temporaryFolder + category.split('/')[-1] + ".csv")
+        category_data = iterateCategory(page, category)
         save_product(category_data, file_path_to_save + unfilteredFolder + category.split('/')[-1] + ".csv")
+        all_data.extend(category_data)
     return all_data
 
 
@@ -103,11 +115,11 @@ def save_product(data, filename):
     if os.path.isfile(filename):
         df = pd.DataFrame(data, columns=['Vendor', 'Title', 'Url', 'Price', 'Image'])
         df.to_csv(filename, mode='a', header=False, index=False)
-        print(f"Data has been appended to {filename}")
+        print(f"{len(data)} products has been appended to {filename}")
     else:
         df = pd.DataFrame(data, columns=['Vendor', 'Title', 'Url', 'Price', 'Image'])
         df.to_csv(filename, index=False)
-        print(f"Data has been saved to {filename}")
+        print(f"{len(data)} products has been saved to {filename}")
 
 def getHref(page):
     li_elements = page.query_selector_all('ul.menu-bar__inner > li.menu-bar__item')
@@ -119,8 +131,8 @@ def getHref(page):
             href_list.append(href_value)
 
     if href_list:
-        href_list.pop()
-        href_list = href_list[2:]
+        href_list.pop() # Remove the last 'category'. It's the search bar.
+        href_list = href_list[2:] # Remove the 2 first. I don't need them.
     return href_list
 
 
@@ -132,7 +144,6 @@ if __name__ == "__main__":
     with sync_playwright() as p:
         page, browser = openWebsite(p)
         category_links = getHref(page)
-        # time.sleep(10)
         try:
             all_data = getAllProduct(page, category_links)
         except Exception as e:

@@ -1,8 +1,5 @@
-import datetime, os
-
-def getDate() -> str:
-    today_date: datetime.date = datetime.date.today()
-    return today_date.strftime("%Y-%m-%d")
+import os
+from private import temporaryFolder, unfilteredFolder
 
 def waitForPage(page):
     try:
@@ -14,20 +11,20 @@ def waitForPage(page):
 
 
 def checkTempFolder(file_path):
-    temp_folder_path = os.path.join(file_path, "temp")
+    temp_folder_path = os.path.join(file_path, temporaryFolder)
     if not os.path.exists(temp_folder_path):
         os.makedirs(temp_folder_path)
-        print(f"Created 'temp' folder in {file_path}.")
+        print(f"Created '{temporaryFolder}' folder in {file_path}.")
     else:
-        print(f"'temp' folder already exists in {file_path}.")
+        print(f"'{temporaryFolder}' folder already exists in {file_path}.")
     
 def checkUnfilteredFolder(file_path):
-    unfiltered_folder_path = os.path.join(file_path, "unfiltered")
+    unfiltered_folder_path = os.path.join(file_path, unfilteredFolder)
     if not os.path.exists(unfiltered_folder_path):
         os.makedirs(unfiltered_folder_path)
-        print(f"Created 'unfiltered' folder in {file_path}.")
+        print(f"Created '{unfilteredFolder}' folder in {file_path}.")
     else:
-        print(f"'unfiltered' folder already exists in {file_path}.")
+        print(f"'{unfilteredFolder}' folder already exists in {file_path}.")
 
 def checkFilePath(file_path):
     if os.path.exists(file_path) and os.path.isdir(file_path):
