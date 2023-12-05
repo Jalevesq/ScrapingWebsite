@@ -1,5 +1,4 @@
 from playwright.sync_api import sync_playwright
-from undetected_playwright import stealth_sync
 
 import pandas as pd
 import time, random, datetime, os, re
@@ -12,7 +11,6 @@ def openWebsite(p):
     browser = p.chromium.launch(headless=True, slow_mo=1000)
     random_user_agent = random.choice(user_agents)
     context = browser.new_context(user_agent=random_user_agent)
-    stealth_sync(context)
     page = context.new_page()
     
     page.goto(websiteToScrape)
